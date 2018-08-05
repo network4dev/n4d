@@ -4,7 +4,7 @@ Welcome to Network4Dev!
 Network4Dev is a community-driven initiative to explain networking infrastructure concepts & challenges to a wider audience (for example, but not only, devs & sysadmins).
 
 .. toctree::
-   :caption: Introduction
+   :caption: Main Page
    :maxdepth: 1
 
    introduction
