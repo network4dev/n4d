@@ -4,11 +4,11 @@ Introduction
 
 Welcome to Network4Dev! Network4Dev is a community-driven, open source 
 networking site. The site was founded by 
-`Daniel Dib <https://www.linkedin.com/in/danieldib/>`_ in 2018 and all 
+`Daniel Dib <http://lostintransit.se/about/>`_ in 2018 and all 
 work behind the scenes is done by 
-`Cristian Sirbu <https://www.linkedin.com/in/sirbucristian/>`_. At the
-time of this writing ``2018-08-19``, the two maintainers of the
-`GitHub repository <https://github.com/network4dev/n4d>`_ is 
+`Cristian Sirbu <https://www.trueneutral.eu/pages/about.html>`_. 
+At the time of this writing ``2018-08-19``, the two maintainers of the
+`GitHub repository <https://github.com/network4dev/n4d>`_ are 
 Cristian and Daniel.
 
 As infrastructure is moving towards more elastic, composable and
@@ -37,7 +37,8 @@ In order to contribute to this site, read the :doc:`contributing`
 guide.
 
 Please note that all contributions to this site will be reviewed
-for quality both in terms of language, technical level in order
-to preserve high quality content.
+and edited by the maintainers for quality, accuracy and clarity 
+both in terms of language and technical level in order to maintain
+our goals.
 
 
