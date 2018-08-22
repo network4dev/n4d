@@ -9,10 +9,11 @@ infrastructure concepts & challenges to a wider audience
    :caption: Main Page
    :maxdepth: 1
 
-   introduction
-   audience
-   contributing
-   changelog
+   docs/introduction
+   docs/audience
+   docs/contributing
+   docs/infrastructure
+   docs/changelog
 
 .. toctree::
    :caption: Documentation
