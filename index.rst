@@ -1,8 +1,8 @@
 Welcome to Network4Dev!
 =======================================
 
-Network4Dev is a community-driven initiative to explain networking 
-infrastructure concepts & challenges to a wider audience 
+Network4Dev is a community-driven initiative to explain networking
+infrastructure concepts & challenges to a wider audience
 (for example, but not only, devs & sysadmins).
 
 .. toctree::
@@ -11,16 +11,16 @@ infrastructure concepts & challenges to a wider audience
 
    introduction
    audience
-   changelog
    contributing
+   changelog
 
 .. toctree::
    :caption: Documentation
    :maxdepth: 1
 
+   docs/networking/index
+   docs/services/index
+   docs/design/index
    docs/cloud/index
    docs/datacenter/index
-   docs/design/index
-   docs/networking/index
    docs/security/index
-   docs/services/index
