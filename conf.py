@@ -22,6 +22,7 @@
 project = 'network4dev'
 copyright = '2018, network4dev contributors'
 author = 'network4dev'
+show_authors = True
 
 # The short X.Y version
 version = '1.0'
