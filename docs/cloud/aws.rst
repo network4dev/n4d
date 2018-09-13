@@ -234,7 +234,7 @@ Internet Gateway
 
 The internet gateway (IGW) provides access to the internet. This device
 is provided by Amazon, is highly available and is used by pointing a default
-route at the IGW. The IGW is a regional service
+route at the IGW. The IGW is a regional service.
 
 ^^^^^^^^^^^
 NAT Gateway
@@ -278,106 +278,109 @@ VGW. This is because a VGW is always only a responder, never the initiator.
 Only 100 routes are supported to be added into the VPC through the use of
 VPNs.
 
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 Direct Connect (DX)
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
-AWS Direct Connect provides the ability to estabilsh a dedicated network 
+AWS Direct Connect provides the ability to establish a dedicated network 
 connection from sites such as data centers, offices, or colocation enviroments
-to AWS. 
-It provides a more consistent network experience than internet based 
-connections at bandwidths ranging from 50 Mbps to 10 Gbps on a single connection
-Direct Connect (DX) has the following requirements :-
-- 802.1Q
-- BGP
-- BFD (Optional)
+to AWS. It provides a more consistent network experience than internet-based 
+connections at bandwidths ranging from 50 Mbps to 10 Gbps on a single connection.
+Direct Connect (DX) has the following requirements :
 
-^^^^^^^^^^^^^^^^^^^^^^^
+* 802.1Q
+* BGP
+* BFD (Optional)
+
+^^^^^^^^^^^^^^^^^^^^^^^^^
 Virtual Interfaces (VIFs)
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A VIF is a configuration consisting primarily of an 802.1Q VLAN and the options
-for an associated BGP Session. it contains all the configuration parameters 
+for an associated BGP Session. It contains all the configuration parameters 
 required for both the AWS end of a connection and your end of the connection 
-AWS Direct connect support two types of VIFs
-- Public VIFs
-- Private VIFs
+AWS Direct connect support two types of VIFs:
 
-1) Public VIFs: Public Virtual interfaces enable your network to reach all of 
+* Public VIFs
+* Private VIFs
+
+1. Public VIFs: Public Virtual interfaces enable your network to reach all of 
 the AWS public IP addresses for the AWS region with which your AWS Direct Connect
-connection is associated 
-Public Vifs are typically used to enable direct network access to services that are
-not reachable via a private ip address within your ow VPC, These include Amazon S3,
-Amazon DyanmoDB, Amazon SQS.
+connection is associated. Public VIFs are typically used to enable direct network 
+access to services that are not reachable via a private IP address within your 
+own VPC. These include Amazon S3, Amazon DynamoDB and Amazon SQS.
 
-2) Private VIFs: Private Virtual Interfaces enable your network to reach resources
-that have been provisioned within your vpc via their private ip address. 
-A Private VIF is associated with the VGW for your VPC to enable this conectivity
+2. Private VIFs: Private Virtual Interfaces enable your network to reach resources
+that have been provisioned within your VPC via their private IP address. 
+A Private VIF is associated with the VGW for your VPC to enable this connectivity.
 Private VIFs are used to enable direct network access to services that are reachable 
-via an IP address within your own VPC. These include Amazon EC2, Amazon RDS, and
-Amazon Redshift
+via an IP address within your own VPC. These include Amazon EC2, Amazon RDS and
+Amazon Redshift.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 802.1Q Virtual Local Area Networks (VLANs)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-802.1Q is an ethernet standard that enables Virtual Local Area Networks
-(VLANs) on an ethernet network, it uses the addition of a VLAN tag to the
-header of an ethernet frame to define membership of a particular VLAN
+802.1Q is an Ethernet standard that enables Virtual Local Area Networks
+(VLANs) on an Ethernet network, it uses the addition of a VLAN tag to the
+header of an Ethernet frame to define membership of a particular VLAN.
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Link Aggregation Groups (LAGs)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A LAG is a logical interface that uses the LACP (Link Aggregation Control 
-Prorocol) to aggregate multiple i Gbps or 10 Gbps connections at a single 
-AWS Direct Connect location , allowing you to treat them as a single, managed 
-connection 
+Protocol) to aggregate multiple 1 Gbps or 10 Gbps connections at a single 
+AWS Direct Connect location, allowing you to treat them as a single, managed 
+connection.
 
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 Direct Connect Gateway
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
-A direct connect gateway enables you to combine private VIFs with multiple VGWs in the local
+A Direct Connect gateway enables you to combine private VIFs with multiple VGWs in local
 or in the remote regions.
 You can use this feature to establish connectivity from an AWS Direct Connect location
-in one gegraphical zone to an AWS region in a different geographical zone 
+in one geographical zone to an AWS region in a different geographical zone. 
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Bidirectional Forwarding Detection (BFD)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Bidirectional forwarding detection (BFD) is a network fault detection protocol
 that provides fast failure detection times, which facilitates faster 
-re-convergence for dynamic routing protocols 
+re-convergence for dynamic routing protocols. 
 It is a mechanism used to support fast failover of connections in the event of
 a failure in the forwarding path between two routers. 
-if a failover occurs, then BFD notifies the associated routing prorocols 
-to recalculate available routes 
+If a failover occurs, then BFD notifies the associated routing prorocols 
+to recalculate available routes. 
 
 ^^^^^^^^^^^^^^^^^^^^^^^
 Border Gateway Protocol
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Border Gateway Prorocol (BGP) is a routing prorocol used to exchange network
-routing and reachability information, either within the same (iBGP)
-or a different autonomous system (eBGP)
+routing and reachability information, either within the same AS (iBGP)
+or a different autonomous system (eBGP).
 
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 BGP Best Path Selection (VGW)
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1) Local routes to the VPC 
-2) Longest prefix match first 
-3) Static route table entries preferred over dynamic 
-4) Dynamic routes 
-  a) Prefer Direct Connect BGP routes 
-     i) Shorter AS-PATH
-     ii) Considered equivalent and will balance traffic per flow (BGP Mulitpath)
-  b) VPN static routes 
-  c) BGP Routes from VPN 
-     i) Shorter AS-PATH
+The best path algorithm in AWS follows this logic:
 
+1. Local routes to the VPC 
+2. Longest prefix match first 
+3. Static route table entries preferred over dynamic 
+4. Dynamic routes       
+   
+   a. Prefer Direct Connect BGP routes        
+   
+      a. Shorter AS-PATH
+      b. Considered equivalent and will balance traffic per flow (BGP Mulitpath)   
+   b. VPN static routes 
+   c. BGP Routes from VPN  
+      a. Shorter AS-PATH
 
 -----------------------------
 Other Interesting Information
