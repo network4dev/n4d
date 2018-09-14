@@ -415,6 +415,12 @@ DNS is handled by the VPC by default. Every instance is assigned a DNS name
 with its IP address, automatically managed by AWS. It's possible to use Route53
 to setup a private zone as well or using an instance hosting the DNS service.
 
+Be mindful that DNS service is only available to DNS clients within the same VPC.
+Although the "plus two" address (e.g. 172.31.0.2) for each VPC is reserved for DNS
+service by default, for simplicity Amazon also reserves the IP address *169.254.169.253* which
+can be used by any DNS client to reach the DNS service endpoint configured for 
+its local VPC. 
+
 ^^^^^^^^^^^^^^^^^^^^^
 Routing and Switching
 ^^^^^^^^^^^^^^^^^^^^^
