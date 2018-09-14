@@ -54,7 +54,7 @@ A `region <http://aws.amazon.com/about-aws/global-infrastructure/>`_ is a
 collection of AZs. The number of regions is always growing and currently
 there are regions in North America, Europe, Asia, and South America.
 
-All regions consist of at least two AZs, some three and some even four. 
+All regions consist of at least two AZs, some three and some even four.
 To provide high availability, applications should be deployed in more than
 one AZ.
 
@@ -101,7 +101,7 @@ Subnets are always specific to an AZ, but there can be several subnets in
 an AZ.
 
 Note that some addresses in a subnet are reserved for use by Amazon.
-For example, in the subnet 192.168.0.0/24, the following addresses would be 
+For example, in the subnet 192.168.0.0/24, the following addresses would be
 reserved:
 
 * 192.168.0.0   - Network address
@@ -122,7 +122,7 @@ Route Table
 Every subnet needs a route table, by default a subnet gets assigned to a
 default route table. It is also possible to create custom route tables.
 A route table can be associated with multiple subnets but every subnet
-can only belong to one route table. 
+can only belong to one route table.
 
 It is common practice to have private and public subnets and using
 different route tables for each. The public subnet would then have
@@ -134,7 +134,7 @@ Note that routes always point to some form of gateway or endpoint, such as an
 internet gateway (IGW), NAT gateway, virtual gateway (VGW), EC2 instance,
 VPC peer or VPC endpoint and not towards an IP address directly.
 
-It's important to know that forwarding can't be changed for local traffic, 
+It's important to know that forwarding can't be changed for local traffic,
 that is traffic inside of the VPC. It's not possible to override this
 behavior with a longer route so routing in a VPC is not strictly
 longest prefix matching (LPM).
@@ -143,8 +143,8 @@ longest prefix matching (LPM).
 Security Group
 ^^^^^^^^^^^^^^
 
-A security group is similar to a stateful ACL or a basic form of firewall, 
-albeit distributed. The SG is applied to the instance directly and keeps 
+A security group is similar to a stateful ACL or a basic form of firewall,
+albeit distributed. The SG is applied to the instance directly and keeps
 track of TCP, UDP and ICMP connection status. Rules are white list only,
 consisting of ACL entries, and contain an implicity deny, meaning that
 anything not permitted, is denied. A SG can reference another SG, for
@@ -166,17 +166,21 @@ can have both permit and deny statements. It's only possible to reference
 CIDR ranges and not instances or other ACLs.
 
 For example, to deny all SSH traffic into a subnet, a NACL could block
-TCP port 22 inbound instead of putting rules in each SG. 
+TCP port 22 inbound instead of putting rules in each SG.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Elastic Network Interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The elastic network interface (ENI) is a virtual network interface card (NIC).
+The Elastic Network Interface (ENI) is a virtual network interface card (NIC).
 An instance can have multiple ENIs and an ENI can be moved to another instance
 within the same subnet. It's also possible to have multiple addresses assigned
 to an ENI. An ENI has a dynamically assigned private IP and optionally a public
-one as well.
+one as well. While the primary ENI assigned to an instance has dynamically
+allocated IP addresses, with a customly created ENI, there's flexibility to
+auto-assign or statically assign IP addresses within the given subnet.
+An instance primary ENI may also have one or more statically provided secondary
+addresses through the console or API.
 
 ^^^^^^^^^^^^^^^^^
 Public IP Address
@@ -282,9 +286,9 @@ VPNs.
 Direct Connect (DX)
 ^^^^^^^^^^^^^^^^^^^
 
-AWS Direct Connect provides the ability to establish a dedicated network 
+AWS Direct Connect provides the ability to establish a dedicated network
 connection from sites such as data centers, offices, or colocation enviroments
-to AWS. It provides a more consistent network experience than internet-based 
+to AWS. It provides a more consistent network experience than internet-based
 connections at bandwidths ranging from 50 Mbps to 10 Gbps on a single connection.
 Direct Connect (DX) has the following requirements :
 
@@ -297,23 +301,23 @@ Virtual Interfaces (VIFs)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A VIF is a configuration consisting primarily of an 802.1Q VLAN and the options
-for an associated BGP Session. It contains all the configuration parameters 
-required for both the AWS end of a connection and your end of the connection 
+for an associated BGP Session. It contains all the configuration parameters
+required for both the AWS end of a connection and your end of the connection
 AWS Direct connect support two types of VIFs:
 
 * Public VIFs
 * Private VIFs
 
-1. Public VIFs: Public Virtual interfaces enable your network to reach all of 
+1. Public VIFs: Public Virtual interfaces enable your network to reach all of
 the AWS public IP addresses for the AWS region with which your AWS Direct Connect
-connection is associated. Public VIFs are typically used to enable direct network 
-access to services that are not reachable via a private IP address within your 
+connection is associated. Public VIFs are typically used to enable direct network
+access to services that are not reachable via a private IP address within your
 own VPC. These include Amazon S3, Amazon DynamoDB and Amazon SQS.
 
 2. Private VIFs: Private Virtual Interfaces enable your network to reach resources
-that have been provisioned within your VPC via their private IP address. 
+that have been provisioned within your VPC via their private IP address.
 A Private VIF is associated with the VGW for your VPC to enable this connectivity.
-Private VIFs are used to enable direct network access to services that are reachable 
+Private VIFs are used to enable direct network access to services that are reachable
 via an IP address within your own VPC. These include Amazon EC2, Amazon RDS and
 Amazon Redshift.
 
@@ -329,9 +333,9 @@ header of an Ethernet frame to define membership of a particular VLAN.
 Link Aggregation Groups (LAGs)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A LAG is a logical interface that uses the LACP (Link Aggregation Control 
-Protocol) to aggregate multiple 1 Gbps or 10 Gbps connections at a single 
-AWS Direct Connect location, allowing you to treat them as a single, managed 
+A LAG is a logical interface that uses the LACP (Link Aggregation Control
+Protocol) to aggregate multiple 1 Gbps or 10 Gbps connections at a single
+AWS Direct Connect location, allowing you to treat them as a single, managed
 connection.
 
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -341,19 +345,19 @@ Direct Connect Gateway
 A Direct Connect gateway enables you to combine private VIFs with multiple VGWs in local
 or in the remote regions.
 You can use this feature to establish connectivity from an AWS Direct Connect location
-in one geographical zone to an AWS region in a different geographical zone. 
+in one geographical zone to an AWS region in a different geographical zone.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Bidirectional Forwarding Detection (BFD)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Bidirectional forwarding detection (BFD) is a network fault detection protocol
-that provides fast failure detection times, which facilitates faster 
-re-convergence for dynamic routing protocols. 
+that provides fast failure detection times, which facilitates faster
+re-convergence for dynamic routing protocols.
 It is a mechanism used to support fast failover of connections in the event of
-a failure in the forwarding path between two routers. 
-If a failover occurs, then BFD notifies the associated routing prorocols 
-to recalculate available routes. 
+a failure in the forwarding path between two routers.
+If a failover occurs, then BFD notifies the associated routing prorocols
+to recalculate available routes.
 
 ^^^^^^^^^^^^^^^^^^^^^^^
 Border Gateway Protocol
@@ -369,18 +373,28 @@ BGP Best Path Selection (VGW)
 
 The best path algorithm in AWS follows this logic:
 
-1. Local routes to the VPC 
-2. Longest prefix match first 
-3. Static route table entries preferred over dynamic 
-4. Dynamic routes       
-   
-   a. Prefer Direct Connect BGP routes        
-   
-      a. Shorter AS-PATH
-      b. Considered equivalent and will balance traffic per flow (BGP Mulitpath)   
-   b. VPN static routes 
-   c. BGP Routes from VPN  
-      a. Shorter AS-PATH
+1. Local routes to the VPC
+2. Longest prefix match first
+3. Static route table entries to:
+
+* IGW
+* VGW
+* Network interface
+* Instance ID
+* VPC peering
+* NAT gateway
+* VPC endpoint
+
+4. VPN routes
+
+   a. Prefer Direct Connect BGP routes
+   b. VPN static routes
+   c. BGP Routes from VPN (not direct connect)
+
+For BGP routes coming from VPN, the following priority applies:
+
+1. Shortest AS-path
+2. Lowest origin (IGP over EGP)
 
 -----------------------------
 Other Interesting Information
