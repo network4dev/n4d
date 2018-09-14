@@ -172,15 +172,15 @@ TCP port 22 inbound instead of putting rules in each SG.
 Elastic Network Interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The elastic network interface (ENI) is a virtual network interface card (NIC).
+The Elastic Network Interface (ENI) is a virtual network interface card (NIC).
 An instance can have multiple ENIs and an ENI can be moved to another instance
 within the same subnet. It's also possible to have multiple addresses assigned
 to an ENI. An ENI has a dynamically assigned private IP and optionally a public
-one as well. While the primary ENI assigned to an instances have dynamically
-alocated IP addresses. With a custom created ENI, there's flexibility to
+one as well. While the primary ENI assigned to an instance has dynamically
+allocated IP addresses, with a customly created ENI, there's flexibility to
 auto-assign or statically assign IP addresses within the given subnet.
-An instance primary ENI may also have on or more statically provided secondary
-addresses thourgh the console or API.
+An instance primary ENI may also have one or more statically provided secondary
+addresses through the console or API.
 
 ^^^^^^^^^^^^^^^^^
 Public IP Address
@@ -375,16 +375,26 @@ The best path algorithm in AWS follows this logic:
 
 1. Local routes to the VPC
 2. Longest prefix match first
-3. Static route table entries preferred over dynamic
-4. Dynamic routes
+3. Static route table entries to:
+
+* IGW
+* VGW
+* Network interface
+* Instance ID
+* VPC peering
+* NAT gateway
+* VPC endpoint
+
+4. VPN routes
 
    a. Prefer Direct Connect BGP routes
-
-      a. Shorter AS-PATH
-      b. Considered equivalent and will balance traffic per flow (BGP Mulitpath)
    b. VPN static routes
-   c. BGP Routes from VPN
-      a. Shorter AS-PATH
+   c. BGP Routes from VPN (not direct connect)
+
+For BGP routes coming from VPN, the following priority applies:
+
+1. Shortest AS-path
+2. Lowest origin (IGP over EGP)
 
 -----------------------------
 Other Interesting Information
