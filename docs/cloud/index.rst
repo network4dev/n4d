@@ -10,3 +10,4 @@ companies leveraging cloud computing.
    :maxdepth: 1
 
    aws
+   azure
