@@ -43,9 +43,10 @@ from a standard ExpressRoute.
 
 https://docs.microsoft.com/en-us/azure/expressroute/expressroute-locations has more details around this.
 
-^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Regions & Availability Zones
-^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 A Region in Azure is one or several datacenters in the same
 geographical area sharing infrastructure such as power and internet transports.
 
