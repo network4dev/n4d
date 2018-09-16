@@ -259,7 +259,7 @@ the NAT order of operations::
 
   Password: nick
 
-  R1>who
+  R1#who
       Line       User       Host(s)              Idle       Location
      0 con 0                idle                 00:02:23
   * 98 vty 0     nick       idle                 00:00:00 198.51.100.1
@@ -277,19 +277,183 @@ the NAT order of operations::
   
 Dynamic One-to-many (1:N) Inside Source NAT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO: NAT overload, NAPT, PAT
+This type of NAT is the most commonly deployed. Almost every consumer Internet
+connection has a LAN network for wired/wireless access. All hosts on this
+segment are translated to a single source IP address by using layer-4 source
+port overloading. The changed source port serves as the demultiplexer to
+translate return traffic back to the proper source IP address. 
+
+This solution is also called NAT overload, Port Address Translation (PAT), or
+Network Address/Port Translation (NAPT). The solution can consume a NAT pool
+(range) but can reuse inside global addresses in the pool across many inside
+local addresses::
+
+  # ACL defines the inside local addresses (pre NAT source)
+  ip access-list standard ACL_INSIDE_SOURCES
+   permit 192.0.2.0 0.0.0.127
+
+  # Pool defines the inside global addresses (post NAT source)
+  ip nat pool POOL_203 203.0.113.12 203.0.113.31 prefix-length 27
+
+  # Binds the inside local list to the inside global pool for translation
+  # Addresses allocated from the pool can be re-used
+  ip nat inside source list ACL_INSIDE_SOURCES pool POOL_203 overload
+
+In order to see this solution, ``debug ip nat detailed`` is used to more
+explicitly show the inside and outside packets and their layer-4 ports. The
+first example uses telnet from ``192.0.2.1`` to ``198.51.100.1``.
+
+1. Initial packet arrives from ``192.0.2.1`` to ``198.51.100.1`` (not in debug)
+2. NAT device performs routing lookup towards ``198.51.100.1``
+3. NAT device identifies inside translation using source port 57186.
+4. NAT device translates source from ``192.0.2.1`` to ``203.0.113.12``
+5. NAT device forwards packet to ``198.51.100.1`` in the outside network
+6. Return packet arrives from ``198.51.100.42`` to ``203.0.113.1`` (not in debug)
+7. NAT device identifies outside translation using destination port 57186.
+8. NAT device translates destination from ``203.0.113.12`` to ``192.0.2.1``
+9. NAT device perform routing lookup towards ``192.0.2.1``
+10. NAT device forwards packet to ``192.0.2.1`` in the inside network
+
+Device output below explains how this works::
+
+  IP: tableid=0, s=192.0.2.1, d=198.51.100.1, routed via RIB
+  NAT: i: tcp (192.0.2.1, 57186) -> (198.51.100.1, 23)
+  NAT: s=192.0.2.1->203.0.113.12, d=198.51.100.1
+  IP: s=203.0.113.12, d=198.51.100.1, g=203.0.113.253, len 42, forward
+  NAT: o: tcp (198.51.100.1, 23) -> (203.0.113.12, 57186)
+  NAT: s=198.51.100.1, d=203.0.113.12->192.0.2.1
+  IP: tableid=0, s=198.51.100.1, d=192.0.2.1, routed via RIB
+  IP: s=198.51.100.1, d=192.0.2.1, g=192.0.2.253, len 42, forward
+
+The power of the solution is illustrated in the output below. A new source,
+``192.0.2.2`` also initiates a telnet session to ``198.51.100.1`` and is
+translated to the same inside global address ``203.0.113.12`` except has
+a source port of 55943. Try to follow the order of operations::
+
+  IP: tableid=0, s=192.0.2.2, d=198.51.100.1, routed via RIB
+  NAT: i: tcp (192.0.2.2, 55943) -> (198.51.100.1, 23)
+  NAT: s=192.0.2.2->203.0.113.12, d=198.51.100.1
+  IP: s=203.0.113.12, d=198.51.100.1, g=203.0.113.253, len 42, forward
+  NAT: o: tcp (198.51.100.1, 23) -> (203.0.113.12, 55943)
+  NAT: s=198.51.100.1, d=203.0.113.12->192.0.2.2
+  IP: tableid=0, s=198.51.100.1, d=192.0.2.2, routed via RIB
+  IP: s=198.51.100.1, d=192.0.2.2, g=192.0.2.253, len 42, forward
+
+The solution, while very widely used, has many drawbacks:
+
+* Many hosts use a common IP address; hard to trace
+* Applications that require source ports to remain unchanged may not work.
+  The NAT would have to retain source ports, which assumes inside local
+  devices never use the same source port for inside-to-outside flows.
+* It only works TCP and UDP traditionally, but most implementations also
+  support ICMP. Protocols like GRE, IPv6-in-IPv4, and L2TP do not work.
 
 Twice NAT
 ^^^^^^^^^
-TODO: Translate source and destination concurrently
+This NAT technique is by far the most complex. It is generally limited to
+in environments where there are overlapping IPs between two hosts that must
+communicate directly. This can occur between RFC 1918 addressing when
+organizations undergo mergers and acquisitions.
+
+In this example, an inside host ``192.0.2.1`` needs to communicate to an
+outside host ``198.51.100.1``. Both of these problems exist:
+
+1. There is already a host with IP ``198.51.100.1`` on the inside network
+2. There is already a host with IP ``192.0.2.1`` on the outside network
+
+To make this work, each host must see the other as some other address.
+That is, both the inside source and outside source must be concurrently
+translated, hence the name "twice NAT". This should not be confused with
+"double NAT" which is discussed in the CGN section.
+
+Twice NAT is where all four of the NAT address types are different:
+
+* inside local: ``192.0.2.1``
+* inside global: ``203.0.113.1``
+* outside global: ``198.51.100.1``
+* outside local: ``192.0.2.99``
+
+Cisco IOS example syntax::
+
+  # ip nat inside source static (inside_local) (inside_global)
+  ip nat inside source static 192.0.2.1 203.0.113.1
+
+  # ip nat outside source static (outside_global) (outside_local)
+  ip nat outside source static 198.51.100.1 192.0.2.99 add-route
+
+The order of operations is similar to previous inside source NAT examples,
+except that following every source translation is a destination translation.
+
+1. Initial packet arrives from ``192.0.2.1`` to ``192.0.2.99`` (not in debug)
+2. NAT device performs routing lookup towards ``192.0.2.99``
+3. NAT device translates source from ``192.0.2.1`` to ``203.0.113.1``
+4. NAT device translates destination from ``192.0.2.99`` to ``198.51.100.1``
+5. NAT device forwards packet to ``198.51.100.1`` in the outside network
+6. Return packet arrives from ``198.51.100.1`` to ``203.0.113.1`` (not in debug)
+7. NAT device translates source from ``198.51.100.1`` to ``192.0.2.99``
+8. NAT device translates destination from ``203.0.113.1`` to ``192.0.2.1``
+9. NAT device perform routing lookup towards ``192.0.2.1``
+10. NAT device forwards packet to ``192.0.2.1`` in the inside network
+
+Device output showing the order of operations is below::
+
+  IP: tableid=0, s=192.0.2.1, d=192.0.2.99, routed via RIB
+  NAT: s=192.0.2.1->203.0.113.1, d=192.0.2.99 [40]
+  NAT: s=203.0.113.1, d=192.0.2.99->198.51.100.1 [40]
+  IP: s=203.0.113.1, d=198.51.100.1, g=203.0.113.253, len 100, forward
+  NAT*: s=198.51.100.1->192.0.2.99, d=203.0.113.1 [40]
+  NAT*: s=192.0.2.99, d=203.0.113.1->192.0.2.1 [40]
+  IP: tableid=0, s=192.0.2.99, d=192.0.2.1, routed via RIB
+  IP: s=192.0.2.99, d=192.0.2.1, g=192.0.2.253, len 100, forward
+
+NAT as a crude load balancer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This use case is uncommonly used but does, at a basic level, represent how
+a server load balancer might work. It combines the logic of port forwarding
+(unsolicited outside-to-inside access) with a rotary NAT pool to create
+a dynamic solution whereby external clients can access internal hosts in
+round-robin fashion, typically for load balancing.
+
+Cisco IOS syntax example::
+
+  # Define a list of virtual IPs for outside-to-inside access
+  ip access-list standard ACL_VIRTUAL_IP
+   permit 203.0.113.99
+
+  # Define the inside local "servers" in the pool
+  ip nat pool POOL_192 192.0.2.1 192.0.2.4 prefix-length 9 type rotary
+
+  # Bind the virtual IP list to the server pool
+  ip nat inside destination list ACL_VIRTUAL_IP pool POOL_192
+
+Each time the outside host with IP ``198.51.100.1`` telnets to the
+virtual IP address used to represent the server pool of ``203.0.113.99``,
+the NAT device selects a different inside local address for the destination
+of the connection. The range of inside IP addresses goes from ``192.0.2.1``
+to ``192.0.2.4``, which are actual server IP addresses behind the NAT.
+The debug is shown below with RIB/packet forwarding output
+excluded for clarity as it reveals nothing new. Each block of output
+is from a separate telnet session, and represents a single keystroke::
+  
+  # Choose server 192.0.2.1
+  NAT*: s=198.51.100.1, d=203.0.113.99->192.0.2.1
+  NAT*: s=192.0.2.1->203.0.113.99, d=198.51.100.1
+
+  # Choose server 192.0.2.2
+  NAT*: s=198.51.100.1, d=203.0.113.99->192.0.2.2
+  NAT*: s=192.0.2.2->203.0.113.99, d=198.51.100.1
+
+  # Choose server 192.0.2.3
+  NAT*: s=198.51.100.1, d=203.0.113.99->192.0.2.3
+  NAT*: s=192.0.2.3->203.0.113.99, d=198.51.100.1
+
+  # Choose server 192.0.2.4
+  NAT*: s=198.51.100.1, d=203.0.113.99->192.0.2.4
+  NAT*: s=192.0.2.4->203.0.113.99, d=198.51.100.1
 
 Carrier Grade NAT (CGN)
 ^^^^^^^^^^^^^^^^^^^^^^^
 TODO: LSN, double NAT
-
-NAT as a crude load balancer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO: inside destination NAT
 
 NAT as a security tool
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -297,4 +461,4 @@ TODO: topology hiding, minor security advantage
 
 The true cost of NAT
 ^^^^^^^^^^^^^^^^^^^^
-TODO: CGN logging opex, hardware capex, common abuses
+TODO: CGN logging opex, hardware capex, common abuses, ALG
