@@ -13,30 +13,35 @@ Definitions
 ^^^^^^^^^^^
 Master these terms before continuing:
 
-* inside: The network *behind* the NAT point, often where source
+* **inside**: The network *behind* the NAT point, often where source
   addresses are translated from private to public.
-* outside: The network *in front of* the NAT point. Often packets in
+* **outside**: The network *in front of* the NAT point. Often packets in
   this network hae publicly routable source IP addresses.
-* state: The information stored in the NAT device about each translation.
+* **state**: The information stored in the NAT device about each translation.
   NAT state is typically stored in a table containing pre and post NAT
   addressing, and sometimes layer-4 port/protocol information as well.
-* pool: A range of addresses which can be used as outputs from the NAT
+* **pool**: A range of addresses which can be used as outputs from the NAT
   process. Addresses in a pool are dynamic resources which are allocated
   on-demand when hosts need to traverse a NAT and require different IPs.
+* **ALG**: Application Level Gateway is a form of payload inspection that
+  looks for embedded IP addresses inside the packet's payload, which
+  traditional NAT devices cannot see. ALGs are NAT enhancements on a
+  per-application basis (yuck) to translate these embedded addresses.
+  Applications such as active FTP and SIP require ALGs.
 
 In Cisco-speak, some additional terms are defined. These seem confusing at
 first, but are a blessing in disguise because they are unambiguous.
 
-* Inside local: IP on the *inside* network from the perspective of other
+* **Inside local:** IP on the *inside* network from the perspective of other
   hosts on the *inside* network. This is often a private RFC 1918 IP
   address and is seen by other hosts on the inside as such.
-* Inside global: IP on the *inside* network from the perspective of
+* **Inside global:** IP on the *inside* network from the perspective of
   hosts on the *outside* network. This is often a publicly routable
   address which represents the inside host to outside hosts.
-* Outside global: IP on the *outside* network from the perspective of other
+* **Outside global:** IP on the *outside* network from the perspective of other
   hosts on the *outside* network. This is often a publicly routable
   address and is seen by other hosts on the outside as such.
-* Outside local: IP on the *outside* network from the perspective of
+* **Outside local**: IP on the *outside* network from the perspective of
   hosts on the *inside* network. This is usually the same as the outside
   global since the all hosts, whether inside or outside, view outside hosts
   as having a single, public IP address (but not always).
@@ -49,6 +54,21 @@ Things to keep in mind:
   which allows IP packet debugging (routing lookups) to be shown. This is
   not supported on newer Cisco routers, so older devices running 12.4T are
   used in these demonstrations.
+* This document *describes* NAT, but does not *prescribe* NAT. NAT designs are
+  almost never the best overall solutions and should be considered short-term,
+  tactical options. Software should avoid relying on it by using duplicate,
+  hardcoded IPs, then relying on NAT later to fix the blunder.
+* Mastery of the NAT order of operations is required for any developer
+  building an application that may traverse a NAT device. This affects which
+  addresses are used when, impacts DNS, impacts packet payloads
+  (ie, embedded IPs), and more.
+
+  1. Packet arrives on inside
+  2. Router performs route lookup to destination
+  3. Router translates address
+  4. Reply arrives on outside
+  5. Route translates address back
+  6. Router performs route lookup to destination
 
 Static One-to-one (1:1) Inside Source NAT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -194,7 +214,7 @@ previous section::
   IP: tableid=0, s=198.51.100.2, d=192.0.2.2, routed via RIB
   IP: s=198.51.100.2, d=192.0.2.2, g=192.0.2.253, len 100, forward
 
-Static One-to-many (1:N) Inside Source NAT
+Static Many-to-one (N:1) Inside Source NAT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This technique is used to provide overloaded outside-to-inside access
 using TCP or UDP ports. It's particularly useful for reaching devices
@@ -275,7 +295,7 @@ the NAT order of operations::
   NAT: s=192.0.2.1->203.0.113.1, d=198.51.100.1
   IP: s=203.0.113.1, d=198.51.100.1, g=203.0.113.253, len 268, forward
   
-Dynamic One-to-many (1:N) Inside Source NAT
+Dynamic Many-to-one (N:1) Inside Source NAT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This type of NAT is the most commonly deployed. Almost every consumer Internet
 connection has a LAN network for wired/wireless access. All hosts on this
@@ -453,12 +473,127 @@ is from a separate telnet session, and represents a single keystroke::
 
 Carrier Grade NAT (CGN)
 ^^^^^^^^^^^^^^^^^^^^^^^
-TODO: LSN, double NAT
+This NAT technique does not introduce any new technology as it usually
+refers to simply chaining PAT solutions (dynamic inside source NAT) in
+series to create an aggregated, more overloaded design. Consider the home
+network of a typical consumer that has perhaps 5 IP-enabled devices on the
+network concurrently. Each device may have 50 connections for a total of 250
+flows. A single IP address could theoretically support more than 65,000 flows
+using PAT given the expanse of the layer-4 port range. Aggregating flows at
+every higher points in a hierarchical NAT design helps achieve greater
+NAT efficiency/density. Thus, given ~250 flows per home, a single CGN could
+perform NAT aggregation services for ~260 homes to result in ~65,000
+ports utilized from a single address.
+
+CGN is also known as Large Scale NAT (LSN), LSN444, NAT444, hierarchical NAT,
+and double NAT. Do not confuse CGN with "twice NAT" which is typically a
+single NAT point where the source *and* destination are both translated.
+
+Cisco IOS sample syntax on the home router (first NAT point)::
+
+  # ACL defines the inside local addresses (pre NAT source)
+  ip access-list standard ACL_INSIDE_SOURCES
+   permit 192.0.2.0 0.0.0.127
+
+  # Use the single outside IP (often a DHCP address) to translate inside hosts
+  ip nat inside source list ACL_INSIDE_SOURCES interface FastEthernet0/1 overload
+
+Cisco IOS sample syntax on the CGN router (second NAT point)::
+
+  # Contains the inside global addreses (CGN range) from the home routers
+  ip access-list standard ACL_CONSUMER_ROUTERS
+   permit 100.64.0.0 0.63.255.255
+
+  # Create NAT pool, typically a small number of public IPs for the CGN domain
+  ip nat pool POOL_CGN 203.0.113.0 203.0.113.3 prefix-length 30
+
+  # Bind the home routers using CGN 100.64.0.0/10 space to the CGN pool
+  ip nat inside source list ACL_CONSUMER_ROUTERS pool POOL_CGN overload
+
+Given that no new technology is introduced, the debug below can be summarized
+in 4 main steps. The debugs are broken up to help visualize the NAT actions
+across multiple devices along the packet's journey upstream and downstream.
+
+1. Inside-to-outside NAT at home router
+2. Inside-to-outside NAT at CGN router
+3. Outside-to-inside NAT at CGN router
+4. Outside-to-inside NAT at home router
+
+Device output::
+
+  # Inside-to-outside NAT at home router
+  IP: tableid=0, s=192.0.2.1, d=198.51.100.4, routed via RIB
+  NAT: s=192.0.2.1->100.64.23.254, d=198.51.100.4
+  IP: s=100.64.23.254, d=198.51.100.4, g=100.64.23.253, len 100, forward
+
+  # Inside-to-outside NAT at CGN router
+  IP: tableid=0, s=100.64.23.254, d=198.51.100.4, routed via RIB
+  NAT: s=100.64.23.254->203.0.113.2, d=198.51.100.4
+  IP: s=203.0.113.2, d=198.51.100.4, g=203.0.113.254, len 100, forward
+
+  # Outside-to-inside NAT at CGN router
+  NAT*: s=198.51.100.4, d=203.0.113.2->100.64.23.254
+  IP: tableid=0, s=198.51.100.4, d=100.64.23.254, routed via RIB
+  IP: s=198.51.100.4, d=100.64.23.254, g=100.64.23.254, len 100, forward
+
+  # Outside-to-inside NAT at home router
+  NAT*: s=198.51.100.4, d=100.64.23.254->192.0.2.1
+  IP: tableid=0, s=198.51.100.4, d=192.0.2.1, routed via RIB
+  IP: s=198.51.100.4, d=192.0.2.1, g=192.0.2.253, len 100, forward
+
+Like most "quick fix" solutions, CGN has serious drawbacks:
+
+* Massive capital investment for specialized hardware to perform high-density
+  NAT with good performance and reliability.
+* Burdensome regulatory requirements on NAT logging. If ~260 households all
+  share a single public IP, criminal activity tracking becomes more difficult.
+  Carriers are often required to retain NAT logging, along with consumer router
+  IP addressing bindings, to identify where malicious activity originates. This
+  comes with additional capital and operating expense.
+* ALG support is already hard with NAT. With CGN, almost impossible.
+* No possibility of outside-to-inside traffic, even with port forwarding,
+  for customers.
+* No possibility of peer-to-peer applications working.
+* Restricted ports per consumer (250 in the theoretical example above)
+
+In closing, developers should build applications that can use IPv6, totally
+obviating the complex and costly workarounds need to get them working across
+CGN in many cases.
 
 NAT as a security tool
 ^^^^^^^^^^^^^^^^^^^^^^
-TODO: topology hiding, minor security advantage
+This is a topic of much debate, and there are two sides to the coin.
 
-The true cost of NAT
-^^^^^^^^^^^^^^^^^^^^
-TODO: CGN logging opex, hardware capex, common abuses, ALG
+NAT provides the following security advantages:
+
+  * No reachability: In one-to-many NAT scenarios where unsolicited
+    outside-to-inside flows are technically impossible, the inside hosts
+    are insulted from direct external attacks.
+  * Obfuscation: The original IP address of the inside host is never
+    revealed to the outside world, making targeted attacks more difficult.
+  * Automatic firewalling: As a stateful device, only outside-to-inside
+    flows already in the state table are allowed, and the inside-to-outside
+    NAT state is created based on an ACL, much like a firewall.
+
+Many of these security advantages are easily defeated:
+
+  * Relatively simple attacks like phishing and social engineering cause
+    clients to initiate connections to the outside. Such attacks are
+    easy to stage and more effective than outside-in frontal assaults.
+  * Most applications don't use their IP addresses as identification. A web
+    application might have usernames or a digital certificate. The IP address
+    itself is mostly irrelevant and not worth protecting. It's entirely
+    irrelevant when clients receive IP addresses dynamically, eg via DHCP.
+  * A NAT device drops outside-in flows due to lack of state, but does not
+    provide any protection against spoofed, replayed, or otherwise bogus
+    packets that piggy-back on existing flows. Security appliances do.
+    The only similarity between NATs and firewalls is that they maintain
+    state. They should not be categorized in any other way.
+
+In closing, do not rely on NAT as a real security technology. It's roughly
+equivalent to closing your blinds in your home. It adds marginal security
+value but there are clearly better alternatives. Like blinds on windows,
+NAT may conceal and slow down some attacks, but should never be confused for
+a legitimate security component in the design.
+
+.. sectionauthor:: Nick Russo <njrusmc@gmail.com>
