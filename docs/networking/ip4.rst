@@ -6,7 +6,7 @@ NAT44
 -----
 Network Address Translation is a technique used to change, or translate,
 the source or destination IPv4 address. This is not an exclusive "or" as both
-address could be translated. This document is iterative in that each use case
+addresses can be translated. This document is iterative in that each use case
 is described and demonstrated sequentially and in small batches.
 
 Definitions
@@ -22,12 +22,16 @@ Master these terms before continuing:
   addressing, and sometimes layer-4 port/protocol information as well.
 * **pool**: A range of addresses which can be used as outputs from the NAT
   process. Addresses in a pool are dynamic resources which are allocated
-  on-demand when hosts need to traverse a NAT and require different IPs.
+  on-demand when hosts traverse a NAT point and require different IPs.
 * **ALG**: Application Level Gateway is a form of payload inspection that
   looks for embedded IP addresses inside the packet's payload, which
   traditional NAT devices cannot see. ALGs are NAT enhancements on a
   per-application basis (yuck) to translate these embedded addresses.
   Applications such as active FTP and SIP require ALGs.
+* **unsolicited traffic**: In the context of NAT, this refers to traffic
+  originating from the outside network and destined for some device on
+  the inside network. It is called "unsolicited" because the inside host did
+  not initiate the communication.
 
 In Cisco-speak, some additional terms are defined. These seem confusing at
 first, but are a blessing in disguise because they are unambiguous.
@@ -56,18 +60,19 @@ Things to keep in mind:
   used in these demonstrations.
 * This document *describes* NAT, but does not *prescribe* NAT. NAT designs are
   almost never the best overall solutions and should be considered short-term,
-  tactical options. Software should avoid relying on it by using duplicate,
+  tactical options. Software should avoid using duplicate and/or
   hardcoded IPs, then relying on NAT later to fix the blunder.
 * Mastery of the NAT order of operations is required for any developer
   building an application that may traverse a NAT device. This affects which
-  addresses are used when, impacts DNS, impacts packet payloads
-  (ie, embedded IPs), and more.
+  addresses are revealed (and when), impacts DNS, impacts packet payloads
+  (ie, embedded IPs), and more. The basic *inside source* NAT order of
+  operations is described below.
 
   1. Packet arrives on inside
   2. Router performs route lookup to destination
-  3. Router translates address
+  3. Router translates source address
   4. Reply arrives on outside
-  5. Route translates address back
+  5. Route translates source address back
   6. Router performs route lookup to destination
 
 Static One-to-one (1:1) Inside Source NAT
@@ -80,19 +85,21 @@ another. This technique is useful in the following cases:
 * Outside-to-inside unsolicited traffic flow is required
 * Address traceability is required, typically for security audits
 
-When traffic traverses the NAT, only the source IP changes. In this example,
-inside hosts ``192.0.2.1`` and ``192.0.2.2`` are mapped to ``203.0.113.1``
-and ``203.0.113.1``, respectively. Cisco IOS syntax is below::
+When traffic traverses NAT, only the source IP changes. In this
+example, inside hosts ``192.0.2.1`` and ``192.0.2.2`` are mapped to
+``203.0.113.1`` and ``203.0.113.1``, respectively. Cisco IOS syntax is below::
 
   # ip nat inside source static (inside_local) (inside_global)
   ip nat inside source static 192.0.2.1 203.0.113.1
   ip nat inside source static 192.0.2.2 203.0.113.2
 
+.. image:: ../_static/networking/nat44-static11.png
+
 Enabling NAT (``debug ip nat``) and IP packet (``debug ip packet``) debug
 reveals how this technology works. Follow the order of operations:
 
-1. Initial packet arrives from ``192.0.2.1`` to ``198.51.100.42`` (not in debug)
-2. NAT device performs routing lookup towards ``198.51.100.42``
+1. Initial packet arrives from ``192.0.2.1`` to ``198.51.100.1`` (not in debug)
+2. NAT device performs routing lookup towards ``198.51.100.1``
 3. NAT device translates source from ``192.0.2.1`` to ``203.0.113.1``
 4. NAT device forwards packet to ``198.51.100.1`` in the outside network
 5. Return packet arrives from ``198.51.100.42`` to ``203.0.113.1`` (not in debug)
@@ -100,7 +107,7 @@ reveals how this technology works. Follow the order of operations:
 7. NAT device perform routing lookup towards ``192.0.2.1``
 8. NAT device forwards packet to ``192.0.2.1`` in the inside network
 
-Some information has been hand-editted from the debug for clarity::
+Some information has been hand-edited from the debug for clarity::
 
   IP: tableid=0, s=192.0.2.1, d=198.51.100.1, routed via RIB
   NAT: s=192.0.2.1->203.0.113.1, d=198.51.100.1
@@ -122,7 +129,7 @@ it on paper. Mastering the NAT order of operations is essential::
 
 The main drawbacks of this solution are scalability and manageability. A
 network with 10,000 hosts would require 10,000 dedicated addresses with
-no sharing, which limits scale. Managing all these NAT statements, though
+no sharing, which limits scale. Managing all these NAT statements,
 made massively simpler with modern network automation, is still burdensome
 as someone must still maintain the mapping source of truth.
 
@@ -136,7 +143,7 @@ NAT. It has the following benefits:
 * Easy management and configuration
 * Dynamically-allocated state
 
-When traffic traverses the NAT, only the source IP changes. In this example,
+When traffic traverses NAT, only the source IP changes. In this example,
 inside hosts within ``192.0.2.0/25`` are dynamically mapped to an available
 address in the pool ``203.0.113.0/27``. Note that the two network masks do
 not need to match, and that the ACL can match any inside local address.
@@ -151,6 +158,8 @@ Cisco IOS syntax is below::
 
   # Binds the inside local list to the inside global pool for translation
   ip nat inside source list ACL_INSIDE_SOURCES pool POOL_203
+
+.. image:: ../_static/networking/nat44-dynamic11.png
 
 The output from NAT and IP packet debugging shows an identical flow from the
 previous section. The process has not changed, but the manner in which inside
@@ -176,7 +185,7 @@ the
 
 Static One-to-one (1:1) Inside Network NAT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-This option is a hybrid of the previous static and dynamic 1:1 NAT tehcniques.
+This option is a hybrid of the previous static and dynamic 1:1 NAT techniques.
 The solution requires one inside local prefix and one inside global prefix,
 both of the same prefix length, to be mapped at once. The solution can be
 repeated for multiple inside local/global prefix pairs.
@@ -189,13 +198,15 @@ It has the best of both worlds:
 * Easy management and configuration
 * Dynamically-allocated state
 
-When traffic traverses the NAT, only the source IP changes. In this example,
+When traffic traverses NAT, only the source IP changes. In this example,
 inside hosts within ``192.0.2.0/25`` are statically mapped to their matching
 address in the pool ``203.0.113.0/25``. The network masks *must* match.
 Cisco IOS syntax is below::
 
   # ip nat inside source static network (inside_local) (inside_global) (pfx_len)
   ip nat inside source static network 192.0.2.0 203.0.113.0 /25
+
+.. image:: ../_static/networking/nat44-network11.png
 
 The output from NAT and IP packet debugging shows an identical flow from the
 previous section::
@@ -214,11 +225,11 @@ previous section::
   IP: tableid=0, s=198.51.100.2, d=192.0.2.2, routed via RIB
   IP: s=198.51.100.2, d=192.0.2.2, g=192.0.2.253, len 100, forward
 
-Static Many-to-one (N:1) Inside Source NAT
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Static Many-to-one (N:1) Inside Source NAT (Port Forwarding)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This technique is used to provide overloaded outside-to-inside access
 using TCP or UDP ports. It's particularly useful for reaching devices
-typically hidden behind a NAT that need to receive unsolicited traffic.
+typically hidden behind NAT that need to receive unsolicited traffic.
 
 In these examples, telnet (TCP 23) and SSH (TCP 22) access is needed from
 the outside network towards ``192.0.2.1``. To reach this inside local address,
@@ -244,6 +255,8 @@ untranslated::
       Line       User       Host(s)   Idle       Location
      0 con 0                idle      00:00:47
   * 98 vty 0     nick       idle      00:00:00 198.51.100.1
+
+.. image:: ../_static/networking/nat44-staticn1.png
 
 Enabling NAT (``debug ip nat``) and IP packet (``debug ip packet``) debug
 reveals how this technology works. The NAT process is similar but
@@ -319,6 +332,8 @@ local addresses::
   # Addresses allocated from the pool can be re-used
   ip nat inside source list ACL_INSIDE_SOURCES pool POOL_203 overload
 
+.. image:: ../_static/networking/nat44-dynamicn1.png
+
 In order to see this solution, ``debug ip nat detailed`` is used to more
 explicitly show the inside and outside packets and their layer-4 ports. The
 first example uses telnet from ``192.0.2.1`` to ``198.51.100.1``.
@@ -334,7 +349,8 @@ first example uses telnet from ``192.0.2.1`` to ``198.51.100.1``.
 9. NAT device perform routing lookup towards ``192.0.2.1``
 10. NAT device forwards packet to ``192.0.2.1`` in the inside network
 
-Device output below explains how this works::
+Device output below explains how this works. Note that TCP port 23 is
+irrelevant for this type of NAT because only the source port matters::
 
   IP: tableid=0, s=192.0.2.1, d=198.51.100.1, routed via RIB
   NAT: i: tcp (192.0.2.1, 57186) -> (198.51.100.1, 23)
@@ -361,7 +377,7 @@ a source port of 55943. Try to follow the order of operations::
 
 The solution, while very widely used, has many drawbacks:
 
-* Many hosts use a common IP address; hard to trace
+* Many hosts use a common IP address; removes end-to-end addressing
 * Applications that require source ports to remain unchanged may not work.
   The NAT would have to retain source ports, which assumes inside local
   devices never use the same source port for inside-to-outside flows.
@@ -400,6 +416,8 @@ Cisco IOS example syntax::
 
   # ip nat outside source static (outside_global) (outside_local)
   ip nat outside source static 198.51.100.1 192.0.2.99 add-route
+
+.. image:: ../_static/networking/nat44-twice.png
 
 The order of operations is similar to previous inside source NAT examples,
 except that following every source translation is a destination translation.
@@ -441,7 +459,7 @@ Cisco IOS syntax example::
    permit 203.0.113.99
 
   # Define the inside local "servers" in the pool
-  ip nat pool POOL_192 192.0.2.1 192.0.2.4 prefix-length 9 type rotary
+  ip nat pool POOL_192 192.0.2.1 192.0.2.4 prefix-length 29 type rotary
 
   # Bind the virtual IP list to the server pool
   ip nat inside destination list ACL_VIRTUAL_IP pool POOL_192
@@ -451,6 +469,9 @@ virtual IP address used to represent the server pool of ``203.0.113.99``,
 the NAT device selects a different inside local address for the destination
 of the connection. The range of inside IP addresses goes from ``192.0.2.1``
 to ``192.0.2.4``, which are actual server IP addresses behind the NAT.
+
+.. image:: ../_static/networking/nat44-tcp-lb.png
+
 The debug is shown below with RIB/packet forwarding output
 excluded for clarity as it reveals nothing new. Each block of output
 is from a separate telnet session, and represents a single keystroke::
@@ -480,10 +501,14 @@ network of a typical consumer that has perhaps 5 IP-enabled devices on the
 network concurrently. Each device may have 50 connections for a total of 250
 flows. A single IP address could theoretically support more than 65,000 flows
 using PAT given the expanse of the layer-4 port range. Aggregating flows at
-every higher points in a hierarchical NAT design helps achieve greater
+every higher point in a hierarchical NAT design helps achieve greater
 NAT efficiency/density. Thus, given ~250 flows per home, a single CGN could
 perform NAT aggregation services for ~260 homes to result in ~65,000
 ports utilized from a single address.
+
+The purpose of CGN has always been to slow to exhaustion of IPv4 addresses,
+buying time for a proper IPv6 deployment. The vast majority of network
+engineers acknowledge that CGN is not a permanent solution.
 
 CGN is also known as Large Scale NAT (LSN), LSN444, NAT444, hierarchical NAT,
 and double NAT. Do not confuse CGN with "twice NAT" which is typically a
@@ -500,7 +525,7 @@ Cisco IOS sample syntax on the home router (first NAT point)::
 
 Cisco IOS sample syntax on the CGN router (second NAT point)::
 
-  # Contains the inside global addreses (CGN range) from the home routers
+  # Contains the inside global addresses (CGN range) from the home routers
   ip access-list standard ACL_CONSUMER_ROUTERS
    permit 100.64.0.0 0.63.255.255
 
@@ -518,6 +543,8 @@ across multiple devices along the packet's journey upstream and downstream.
 2. Inside-to-outside NAT at CGN router
 3. Outside-to-inside NAT at CGN router
 4. Outside-to-inside NAT at home router
+
+.. image:: ../_static/networking/nat44-cgn.png
 
 Device output::
 
@@ -558,7 +585,8 @@ Like most "quick fix" solutions, CGN has serious drawbacks:
 
 In closing, developers should build applications that can use IPv6, totally
 obviating the complex and costly workarounds need to get them working across
-CGN in many cases.
+CGN in many cases. Applications that can be dual-stacked from the beginning
+provide an easy migration path to IPv6.
 
 NAT as a security tool
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -568,7 +596,7 @@ NAT provides the following security advantages:
 
   * No reachability: In one-to-many NAT scenarios where unsolicited
     outside-to-inside flows are technically impossible, the inside hosts
-    are insulted from direct external attacks.
+    are insulated from direct external attacks.
   * Obfuscation: The original IP address of the inside host is never
     revealed to the outside world, making targeted attacks more difficult.
   * Automatic firewalling: As a stateful device, only outside-to-inside
@@ -583,7 +611,7 @@ Many of these security advantages are easily defeated:
   * Most applications don't use their IP addresses as identification. A web
     application might have usernames or a digital certificate. The IP address
     itself is mostly irrelevant and not worth protecting. It's entirely
-    irrelevant when clients receive IP addresses dynamically, eg via DHCP.
+    irrelevant when clients receive IP addresses dynamically (via DHCP).
   * A NAT device drops outside-in flows due to lack of state, but does not
     provide any protection against spoofed, replayed, or otherwise bogus
     packets that piggy-back on existing flows. Security appliances do.
