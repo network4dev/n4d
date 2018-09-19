@@ -1,5 +1,8 @@
 _build
 
+# For MAC users
+.DS_Store
+
 # Vagrant
 .vagrant
 
