@@ -1,0 +1,108 @@
+^^^^ 
+DNS 
+^^^^ 
+
+DNS is used to convert human friendly domain names (Such as HTTP://github.com)   
+into an internet protocol (IP) address (Such as HTTP://82.124.53.1) 
+
+An “A” Record is the fundamental type of DNS Record and the A in A Record   
+stands for “Address” The A record is used by a computer to translate the name  
+of the domain to ip address. For Example http://www.github.com  
+might point to http://123.10.10.80 
+ 
+A Canonical name (CNAME) Can be used to resolve one domain name to another.   
+For example, you may have a mobile website with domain name http://m.github.com  
+that is used for when users browse to your domain in name on their mobile devices. 
+ 
+Alias records are used to map resource record sets in your hosted zone to a 
+elastic load balancer, Cloud front distributions, Or S3 Buckets that are  
+configured as websites. 
+Alias record work like a CNAME record in that you can map one DNS Name  
+(www.example.com) to another target DNS name (Elb1234elbAmazon.AWS.com) 
+
+^^^^^^^^^ 
+Route 53 
+^^^^^^^^^ 
+ 
+Amazon Route 53 is a highly available and scalable cloud DNS web service   
+that is designed to give developers and organizations an extremely reliable  
+and cost effective way to route end users to internet applications 
+
+^^^^^^^^^^^^^^^^^^^^^^^^^  
+Route 53 Routing Policies 
+^^^^^^^^^^^^^^^^^^^^^^^^^ 
+
+- Routing policies determines how Amazon Route 53 respond to queries 
+ 
+>> SIMPLE ROUTING:  
+This is the default routing policy when you create a new resource. 
+This is most commonly used when you have a single resource that performs  
+a given function for your domain, for example one web server that serves  
+content for he http://github.com website 
+
+>> WEIGHTED ROUTING:  
+Weighted routing policies let you split your traffic based on  
+different weights assigned. For example you can set 10% of your 
+traffic to go to US-EAST-1 and 90% to go to EU-West-1 
+ 
+>> LATENCY ROUTING:  
+Latency based routing allows you to route your traffic based on the  
+lowest network latency for your end user. (i.e which region will  
+give them the fastest response time) 
+To use latency based routing you create a latency resource record  
+set for the Amazon EC2 (Or ELB) Resource in each region that hosts your website.  
+
+>> FAILOVER ROUTING  
+ 
+Failover routing policies are used when you want to create an Active /Passive set.  
+For Example you may want your primary site to be in EU-West 2 and your secondary  
+DR Site in AP- South East 2 
+Route 53 will monitor the health of your primary site using a health check. 
+
+>> GEOLOCATION ROUTING  
+Geolocation routing let’s you choose where your traffic will be sent based on  
+the geographic location of your users (I.e the location from which DNS  
+Queries originate) 
+For example you might want all queries from Europe to be routed to a fleet of 
+EC2 Instances that are specifically configured for your European customers. 
+These Servers may have the local language of your European customers and all the  
+prices are displayed in euros. 
+
+>> MULTIANSWER VALUE ROUTING: 
+Multivalue Answer Routing let’s you configure Amazon Route 53 to return multiple 
+values such as IP addresses for your web servers, in response to DNS queries. 
+
+>> GEOPROXIMITY ROUTING  
+Geoproximity routing lets Amazon Route 53 route traffic to your resources based  
+on the geographic location of your resources. 
+It gives you the option to route more traffic or less traffic to a particular resource  
+by specifying the value bias, which will expand or shrink the size of a geographic  
+region to where traffic is currently being routed. 
+
+^^^^^^^^^^^^^^^^^^^^^ 
+Elastic Load Balancing 
+^^^^^^^^^^^^^^^^^^^^^ 
+
+A load balancer in AWS is a mechanism that automatically distributes traffic   
+across multiple Amazon Ec2 Instances (or potentially other targets) 
+You can either manage your virtual load balancers on Amazon EC2 instances  
+or leverage an AWS cloud service called Elastic Load Balancing. 
+Elastic Load Balancing provides three different types of load balancers  
+at as the time of this writing: Classic Load Balancer, Application Load Balancer 
+and Network Load Balancer. 
+
+>> Classic Load Balancer 
+Is the original class of Elastic Load Balancing prior to the release of Application  
+Load Balancer and Network Load Balancer. 
+Used when you want to load balance for amazon EC2 Classic or support for proxy protocol. 
+
+ 
+>> Application Load Balancer  
+An Application Load Balancer operates at the application layer (Layer 7) of the OSI model. 
+Used when you want to have support for path based routing and host based routing. 
+
+>> Network Load Balancer 
+An Amazon Network Load Balancer operates at the transport (Layer 4) of the OSI model.  
+Used when you want support for static IP address for the load balancer, target registration 
+by IP addresses, Client IP Pass through when registering targets by instance ID,  
+and volatile workloads that require scaling to millions of requests per second. 
