@@ -140,15 +140,15 @@ associated with MAC flapping are disabled, either permanently or for a short
 period of time. Log messages on the switch are also typically generated.
 
 Here is an example of the error message generated on a switch running Cisco's
-NX-OS:
+NX-OS: ::
 
-``switch1 %L2FM-2-L2FM_MAC_FLAP_DISABLE_LEARN_N3K: Loops detected in the
-network for mac 1234.5678.90ab among ports Eth1/1 and Eth1/2 vlan 111 -
-Disabling dynamic learning notifications for a period between 120 and 240
-seconds on vlan 111``
+  switch1 %L2FM-2-L2FM_MAC_FLAP_DISABLE_LEARN_N3K: Loops detected in the
+  network for mac 1234.5678.90ab among ports Eth1/1 and Eth1/2 vlan 111 -
+  Disabling dynamic learning notifications for a period between 120 and 240
+  seconds on vlan 111
 
-``switch1 %L2FM-2-L2FM_MAC_FLAP_RE_ENABLE_LEARN_N3K: Re-enabling dynamic
-learning on vlan 111``
+  switch1 %L2FM-2-L2FM_MAC_FLAP_RE_ENABLE_LEARN_N3K: Re-enabling dynamic
+  learning on vlan 111
 
 In this case, Cisco's NX-OS handles the issue by disabling dynamic MAC
 learning for a period of time for the entire VLAN. This means that during this
