@@ -2,7 +2,7 @@
 
 This repository holds the sources for the network4dev.net website.
 
-## Setting up locally
+# Setting up locally
 
 To develop locally and build the website as you edit the documentation, here's what you have to do. You will need a shell, `git` and `python3`.
 
@@ -21,12 +21,12 @@ source venv/bin/activate
 pip install -U pip setuptools
 pip install sphinx sphinx-autobuild sphinx_rtd_theme recommonmark
 
-# Build and serve locally
+# Build a server locally
 cd n4d
 sphinx-autobuild . _build/html 
 ```
 
-## Contributing
+# Contributing
 
 We use GitHub to host code, to track issues and feature requests, as well as accept pull requests. The process is explained here - [Github Flow](https://guides.github.com/introduction/flow/index.html) - and we're happy to help you get on your way to contributing to the project!
 
@@ -34,4 +34,4 @@ All commits to the master branch must be done via PRs which are reviewed and app
 
 So fork the repository, make some changes and submit them to us as a PR!
 
-Once the code makes it into the `master` branch, the webhooks ensure the RTD build triggers and is pushed to the live website over at [network4dev.net](https://network4dev.net)!
+Once the code makes it into the `master` branch, the webhooks ensure the RTD build triggers and is pushed to the live website over at <network4dev.net>(https://network4dev.net)!
