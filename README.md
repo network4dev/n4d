@@ -1,10 +1,10 @@
 # Networking 4 Devs
 
-This repository holds the sources for the network4dev.net website.
+This repository holds the sources for the <network4dev.net> website.
 
-## Setting up locally
+# Setting up locally
 
-To develop locally and build the website as you edit the documentation, here's what you have to do. You will need a shell, `git` and `python3`.
+To develop locally and build the website as you edit the documentation, here's what you have to do. You will need a shell, 'git' and 'python3'.
 
 ```
 # Create a local project folder
@@ -26,7 +26,7 @@ cd n4d
 sphinx-autobuild . _build/html 
 ```
 
-## Contributing
+# Contributing
 
 We use GitHub to host code, to track issues and feature requests, as well as accept pull requests. The process is explained here - [Github Flow](https://guides.github.com/introduction/flow/index.html) - and we're happy to help you get on your way to contributing to the project!
 
